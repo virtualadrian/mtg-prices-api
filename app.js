@@ -1,35 +1,27 @@
 const scrapeIt = require("scrape-it")
 
-let sets = []
-
-const setUrls = [
-    `https://www.mtggoldfish.com/prices/paper/standard`,
-    `https://www.mtggoldfish.com/prices/paper/pioneer`,
-    `https://www.mtggoldfish.com/prices/paper/modern`
-]
-
-const getSetsFromUrl = (url) => {
-
-}
-
 scrapeIt(`https://www.mtggoldfish.com/prices/paper/standard`, {
     "sets": {
-        "listItem": ".priceList-set-header-link:has(> img.priceList-set-icon)",
+        "listItem": "a[role='menuitem']",
         "data":  {
             "name": {
-                selector: "img.priceList-set-icon",
+                selector: "img",
                 attr: "alt"
             },
             "set": {
                 attr: "href",
                 convert: (h) => h.split('/').pop()
             },
-            "priceUrlBase": {
+            "priceUrl": {
                 attr: "href",
                 convert: (h) => `https://www.mtggoldfish.com/index/${h.split('/').pop()}`
+            },
+            "priceFoilUrl": {
+                attr: "href",
+                convert: (h) => `https://www.mtggoldfish.com/index/${h.split('/').pop()}_F`
             }
         }
     }
 }).then(({data}) => {
-    sets = [...data.sets]
+    console.dir(data)
 })

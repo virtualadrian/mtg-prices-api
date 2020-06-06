@@ -7,7 +7,50 @@ const X2JS = require('x2js');
 const fs = require('fs');
 
 
-const getSetCode = async (request, h) => {
+const formatDataForType = (data, type, h) => {
+    if (type === 'json') {
+        return h
+            .response(JSON.stringify(data))
+            .type('application/json')
+            .code(200);
+    } else {
+        const x2 = new X2JS();
+        return h.response(`<?xml version="1.0" encoding="UTF-8" standalone="no" ?><items>${x2.js2xml(data)}</items>`)
+            .type('application/xml')
+            .code(200);
+    }
+}
+
+
+const getAllSets = async (request, h) => {
+
+    return await scrapeIt(`https://www.mtggoldfish.com/prices/paper/standard`, {
+        "set": {
+            "listItem": "a[role='menuitem']",
+            "data":  {
+                "name": {
+                    selector: "img",
+                    attr: "alt"
+                },
+                "code": {
+                    attr: "href",
+                    convert: (h) => h.split('/').pop()
+                },
+                "priceUrl": {
+                    attr: "href",
+                    convert: (h) => `https://www.mtggoldfish.com/index/${h.split('/').pop()}`
+                },
+                "priceFoilUrl": {
+                    attr: "href",
+                    convert: (h) => `https://www.mtggoldfish.com/index/${h.split('/').pop()}_F`
+                }
+            }
+        }
+    }).then(({data}) => formatDataForType(data, request.params.type, h))
+}
+
+
+const getSetCardsByCode = async (request, h) => {
     return await scrapeIt(`https://www.mtggoldfish.com/index/${request.params.code}#paper`, {
         "card": {
             "listItem": "div.index-price-table-paper > table > * > tr",
@@ -18,33 +61,27 @@ const getSetCode = async (request, h) => {
                 "price": "td:nth-of-type(4)"
             }
         }
-    }).then(({data}) => {
-        if (request.params.type === 'json') {
-            return h
-                .response(JSON.stringify(data))
-                .type('application/json')
-                .code(200);
-        } else {
-            const x2 = new X2JS();
-            return h.response(`<?xml version="1.0" encoding="UTF-8" standalone="no" ?><cards>${x2.js2xml(data)}</cards>`)
-                .type('application/xml')
-                .code(200);
-        }
-    });
+    }).then(({data}) => formatDataForType(data, request.params.type, h))
 }
 
 
 const init = async () => {
 
     const server = Hapi.server({
-        port: 3000,
+        port: 3001,
         host: 'localhost'
     });
 
     server.route({
         method: 'GET',
-        path: '/set/{code}/{type}',
-        handler: getSetCode
+        path: '/sets/{type}',
+        handler: getAllSets
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/sets/cards/{code}/{type}',
+        handler: getSetCardsByCode
     });
 
     await server.start();
@@ -52,7 +89,6 @@ const init = async () => {
 };
 
 process.on('unhandledRejection', (err) => {
-
     console.log(err);
     process.exit(1);
 });
