@@ -1,25 +1,35 @@
 const scrapeIt = require("scrape-it")
-const X2JS = require('x2js');
-const fs = require('fs');
 
+let sets = []
 
-// scrapeIt("https://www.mtggoldfish.com/index/RNA#paper", {
-// scrapeIt("http://localhost:3000/rna", {
-const set = "THB"
-scrapeIt(`https://www.mtggoldfish.com/index/${set}#paper`, {
-    "card": {
-        "listItem": "div.index-price-table-paper > table > * > tr",
+const setUrls = [
+    `https://www.mtggoldfish.com/prices/paper/standard`,
+    `https://www.mtggoldfish.com/prices/paper/pioneer`,
+    `https://www.mtggoldfish.com/prices/paper/modern`
+]
+
+const getSetsFromUrl = (url) => {
+
+}
+
+scrapeIt(`https://www.mtggoldfish.com/prices/paper/standard`, {
+    "sets": {
+        "listItem": ".priceList-set-header-link:has(> img.priceList-set-icon)",
         "data":  {
-            "name": "td:nth-of-type(1) > a",
-            "set": "td:nth-of-type(2)",
-            "rarity": "td:nth-of-type(3)",
-            "price": "td:nth-of-type(4)"
+            "name": {
+                selector: "img.priceList-set-icon",
+                attr: "alt"
+            },
+            "set": {
+                attr: "href",
+                convert: (h) => h.split('/').pop()
+            },
+            "priceUrlBase": {
+                attr: "href",
+                convert: (h) => `https://www.mtggoldfish.com/index/${h.split('/').pop()}`
+            }
         }
     }
 }).then(({data}) => {
-    const x2 = new X2JS();
-    const header = `<?xml version="1.0" encoding="UTF-8" standalone="no" ?><cards>${x2.js2xml(data)}</cards>`
-    fs.writeFile(`${set}data.xml`, header, () => {
-        console.log("DONE");
-    })
+    sets = [...data.sets]
 })
